@@ -1,51 +1,133 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TauschDex</title>
-  <style>
-    body {
-      margin: 0;
-      background: #101827;
-      color: white;
-      font-family: Arial, sans-serif;
-      text-align: center;
-    }
-    header {
-      background: #172338;
-      padding: 30px 15px;
-    }
-    h1 { color: #38d9a9; }
-    main { padding: 40px 20px; }
-    button {
-      background: #38d9a9;
-      color: #101827;
-      border: none;
-      border-radius: 10px;
-      padding: 15px 25px;
-      font-size: 16px;
-      font-weight: bold;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TauschDex</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#101827;color:white;font-family:Arial,sans-serif}
+header{background:#172438;text-align:center;padding:30px}
+h1{color:#39d6aa}
+main{max-width:460px;margin:40px auto;padding:16px}
+.card{background:#1e2c42;padding:25px;border-radius:15px}
+input,button{display:block;width:100%;padding:14px;margin:12px 0;border-radius:8px;font-size:16px}
+input{border:1px solid #64748b}
+button{border:0;background:#39d6aa;color:#101827;font-weight:bold;cursor:pointer}
+button.secondary{background:#cbd5e1}
+button:disabled{opacity:.5}
+[hidden]{display:none!important}
+#message{overflow-wrap:anywhere}
+</style>
 </head>
 <body>
-  <header>
-    <h1>TauschDex</h1>
-    <p>Deine Plattform zum Tauschen</p>
-  </header>
-  <main>
-    <h2>Willkommen bei TauschDex!</h2>
-    <p>Tausche Gegenstände einfach und sicher.</p>
-    <button disabled>Bald verfügbar</button>
-    <p>Private Testversion – im Aufbau</p>
-  </main>
-</body>
-  <!-- Supabase Login Platzhalter -->
-</html>
+<header>
+<h1>TauschDex</h1>
+<p>Deine Plattform zum Tauschen</p>
+</header>
+<main>
+<section class="card" id="authBox">
+<h2>Willkommen bei TauschDex</h2>
+<p>Registriere dich oder melde dich an.</p>
+<form id="authForm">
+<input id="email" type="email" placeholder="E-Mail-Adresse" autocomplete="email" required>
+<input id="password" type="password" placeholder="Passwort (mindestens 6 Zeichen)" autocomplete="current-password" minlength="6" required>
+<button id="loginBtn" type="submit">Anmelden</button>
+<button id="registerBtn" type="button" class="secondary">Registrieren</button>
+</form>
+</section>
+<section class="card" id="userBox" hidden>
+<h2>Du bist angemeldet!</h2>
+<p id="userEmail"></p>
+<p>Willkommen bei TauschDex.</p>
+<button id="logoutBtn" type="button">Abmelden</button>
+</section>
+<p id="message" role="status" aria-live="polite"></p>
+</main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  const SUPABASE_URL = "https://wcxbxptcvxcjncnxgrrn.supabase.co/rest/v1/";
-  const SUPABASE_KEY = "sb_publishable_T9e8M597Od26iLF-tn18EA_tFndU3IT";
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL = "https://wcxbxptcvxcjncnxgrrn.supabase.co/rest/v1/";
+const SUPABASE_KEY = "sb_publishable_T9e8M597Od26iLF-tn18EA_tFndU3IT";
+const message = document.getElementById("message");
+const authBox = document.getElementById("authBox");
+const userBox = document.getElementById("userBox");
+const userEmail = document.getElementById("userEmail");
+const loginBtn = document.getElementById("loginBtn");
+const registerBtn = document.getElementById("registerBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+let client;
+function showMessage(text){message.textContent=text}
+function setBusy(busy){
+loginBtn.disabled=busy;
+registerBtn.disabled=busy;
+logoutBtn.disabled=busy;
+}
+function showUser(user){
+authBox.hidden=!!user;
+userBox.hidden=!user;
+userEmail.textContent=user?.email||"";
+}
+function credentials(){
+return {
+email:document.getElementById("email").value.trim(),
+password:document.getElementById("password").value
+};
+}
+async function register(){
+const {email,password}=credentials();
+if(!email||password.length<6){
+showMessage("Bitte gültige E-Mail und mindestens 6 Zeichen Passwort eingeben.");
+return;
+}
+setBusy(true);
+try{
+const {data,error}=await client.auth.signUp({email,password});
+if(error)throw error;
+showMessage(data.session?"Registrierung erfolgreich!":"Bitte bestätige deine E-Mail-Adresse.");
+}catch(e){showMessage("Registrierung fehlgeschlagen: "+e.message)}
+finally{setBusy(false)}
+}
+async function login(){
+const {email,password}=credentials();
+if(!email||!password){showMessage("Bitte E-Mail und Passwort eingeben.");return}
+setBusy(true);
+try{
+const {error}=await client.auth.signInWithPassword({email,password});
+if(error)throw error;
+showMessage("Erfolgreich angemeldet!");
+}catch(e){showMessage("Anmeldung fehlgeschlagen: "+e.message)}
+finally{setBusy(false)}
+}
+async function logout(){
+setBusy(true);
+try{
+const {error}=await client.auth.signOut();
+if(error)throw error;
+showMessage("Du bist abgemeldet.");
+}catch(e){showMessage("Abmeldung fehlgeschlagen: "+e.message)}
+finally{setBusy(false)}
+}
+document.getElementById("authForm").addEventListener("submit",e=>{e.preventDefault();login()});
+registerBtn.addEventListener("click",register);
+logoutBtn.addEventListener("click",logout);
+async function start(){
+if(SUPABASE_URL==="DEINE_PROJEKT_URL"||SUPABASE_KEY==="DEIN_VEROEFFENTLICHUNGSSCHLUESSEL"){
+showMessage("Bitte zuerst deine Supabase-Daten eintragen.");
+setBusy(true);return;
+}
+if(!window.supabase){
+showMessage("Supabase konnte nicht geladen werden.");
+setBusy(true);return;
+}
+try{
+client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+client.auth.onAuthStateChange((_event,session)=>showUser(session?.user??null));
+const {data,error}=await client.auth.getSession();
+if(error)throw error;
+showUser(data.session?.user??null);
+}catch(e){showMessage("Verbindungsfehler: "+e.message);setBusy(true)}
+}
+start();
 </script>
+</body>
+</html>
