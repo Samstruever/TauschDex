@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TauschDex – Pokémon-Karten tauschen</title>
+<title>TauschTCG – Pokémon-Karten tauschen</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
@@ -150,9 +150,8 @@ footer {
 </style>
 </head>
 <body>
-
 <header>
-  <div class="logo">Tausch<span>Dex</span></div>
+  <div class="logo">Tausch<span>TCG</span></div>
   <nav>
     <button class="secondary" onclick="showPage('market')">Marktplatz</button>
     <button class="secondary" onclick="showPage('mine')">Meine Karten</button>
@@ -161,19 +160,15 @@ footer {
     <button id="logoutBtn" class="secondary hidden" onclick="logout()">Abmelden</button>
   </nav>
 </header>
-
 <main class="container">
-
 <section class="hero">
-  <h1>Willkommen bei <strong>TauschDex</strong></h1>
+  <h1>Willkommen bei <strong>TauschTCG</strong></h1>
   <p>Dein Marktplatz für Pokémon-Sammelkarten.<br>
   Karten entdecken, eigene Karten anbieten und direkt mit Sammlern schreiben.</p>
   <button onclick="showPage('market')">Karten entdecken</button>
   <button class="secondary" onclick="showPage('upload')">Karte einstellen</button>
 </section>
-
 <p id="status" class="status" role="status" aria-live="polite"></p>
-
 <section id="authPage" class="panel hidden">
   <h2>Anmelden oder registrieren</h2>
   <label for="email">E-Mail</label>
@@ -183,7 +178,6 @@ footer {
   <button onclick="login()">Anmelden</button>
   <button class="secondary" onclick="register()">Registrieren</button>
 </section>
-
 <section id="marketPage" class="panel">
   <h2>Pokémon-Karten entdecken</h2>
   <input id="search" placeholder="Kartenname, Nummer oder Erweiterung suchen..." oninput="renderCards()">
@@ -198,7 +192,6 @@ footer {
   </select>
   <div id="cards" class="grid"></div>
 </section>
-
 <section id="uploadPage" class="panel hidden">
   <h2>Eigene Pokémon-Karte einstellen</h2>
   <label>Kartenname</label>
@@ -222,18 +215,15 @@ footer {
   <input id="cardImage" type="file" accept="image/jpeg,image/png,image/webp">
   <button id="uploadBtn" onclick="uploadCard()">Karte veröffentlichen</button>
 </section>
-
 <section id="minePage" class="panel hidden">
   <h2>Meine Karten</h2>
   <button onclick="showPage('upload')">Neue Karte einstellen</button>
   <div id="myCards" class="grid"></div>
 </section>
-
 <section id="inboxPage" class="panel hidden">
   <h2>Meine Nachrichten</h2>
   <div id="conversations"></div>
 </section>
-
 <section id="chatPage" class="panel hidden">
   <h2 id="chatTitle">Privater Chat</h2>
   <div id="chatMessages" class="chat-messages"></div>
@@ -241,36 +231,27 @@ footer {
   <button onclick="sendMessage()">Nachricht senden</button>
   <button class="secondary" onclick="showPage('inbox')">Zurück</button>
 </section>
-
 </main>
-
 <footer>
-  TauschDex – Von Sammlern für Sammler<br>
+  TauschTCG – Von Sammlern für Sammler<br>
   <small>Unabhängige Fan-Plattform. Keine Verbindung zu Nintendo, Pokémon oder The Pokémon Company.</small>
 </footer>
-
 <script>
 const SUPABASE_URL = "https://wcxbxptcvxcjncnxgrrn.supabase.co";
 const SUPABASE_KEY = "sb_publishable_T9e8M597Od26iLF-tn18EA_tFndU3IT";
-
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
 let currentUser = null;
 let allCards = [];
 let activeChat = null;
 let currentPage = "market";
-
 const $ = id => document.getElementById(id);
-
 function status(text) {
   $("status").textContent = text || "";
 }
-
 function errorText(error) {
   console.error(error);
   return error?.message || "Ein unbekannter Fehler ist aufgetreten.";
 }
-
 function showPage(page) {
   if (["upload","mine","inbox","chat"].includes(page) && !currentUser) {
     status("Bitte melde dich zuerst an.");
@@ -285,12 +266,10 @@ function showPage(page) {
   if(page==="inbox") loadInbox();
   window.scrollTo({top:0,behavior:"smooth"});
 }
-
 function updateAuth() {
   $("authNav").classList.toggle("hidden",!!currentUser);
   $("logoutBtn").classList.toggle("hidden",!currentUser);
 }
-
 async function register() {
   const email = $("email").value.trim();
   const password = $("password").value;
@@ -303,7 +282,6 @@ async function register() {
     ? "Registrierung erfolgreich!"
     : "Registrierung gestartet. Bitte bestätige gegebenenfalls deine E-Mail.");
 }
-
 async function login() {
   const {error} = await db.auth.signInWithPassword({
     email:$("email").value.trim(),
@@ -313,7 +291,6 @@ async function login() {
   status("Erfolgreich angemeldet!");
   showPage("market");
 }
-
 async function logout() {
   const {error} = await db.auth.signOut();
   if(error) return status(errorText(error));
@@ -321,18 +298,15 @@ async function logout() {
   status("Du wurdest abgemeldet.");
   showPage("market");
 }
-
 function textNode(tag,value,className) {
   const el=document.createElement(tag);
   el.textContent=value ?? "";
   if(className) el.className=className;
   return el;
 }
-
 function makeCard(card,own=false) {
   const el=document.createElement("article");
   el.className="card";
-
   if(card.image_url) {
     const img=document.createElement("img");
     img.src=card.image_url;
@@ -340,7 +314,6 @@ function makeCard(card,own=false) {
     img.loading="lazy";
     el.append(img);
   }
-
   const body=document.createElement("div");
   body.className="card-body";
   body.append(
@@ -350,7 +323,6 @@ function makeCard(card,own=false) {
     textNode("p","Erweiterung: "+(card.expansion||"–")),
     textNode("p",card.description||"")
   );
-
   const button=document.createElement("button");
   if(own) {
     button.textContent="Eigenes Angebot";
@@ -363,7 +335,6 @@ function makeCard(card,own=false) {
   el.append(body);
   return el;
 }
-
 async function loadCards() {
   const {data,error}=await db.from("cards")
     .select("*").order("created_at",{ascending:false});
@@ -374,26 +345,22 @@ async function loadCards() {
   allCards=data||[];
   renderCards();
 }
-
 function renderCards() {
   const search=$("search").value.toLowerCase().trim();
   const condition=$("conditionFilter").value;
   const target=$("cards");
   target.replaceChildren();
-
   const filtered=allCards.filter(c=>
     (!condition||c.condition===condition) &&
     [c.name,c.card_number,c.expansion]
       .some(v=>String(v||"").toLowerCase().includes(search))
   );
-
   if(!filtered.length) {
     target.append(textNode("p","Keine passenden Karten gefunden."));
     return;
   }
   filtered.forEach(c=>target.append(makeCard(c,c.user_id===currentUser?.id)));
 }
-
 async function loadMyCards() {
   if(!currentUser)return;
   const {data,error}=await db.from("cards")
@@ -408,14 +375,12 @@ async function loadMyCards() {
   }
   data.forEach(c=>target.append(makeCard(c,true)));
 }
-
 async function uploadCard() {
   if(!currentUser)return showPage("auth");
   const name=$("cardName").value.trim();
   const number=$("cardNumber").value.trim();
   const expansion=$("cardSet").value.trim();
   const file=$("cardImage").files[0];
-
   if(!name||!number||!expansion||!file) {
     return status("Bitte Name, Nummer, Erweiterung und Foto angeben.");
   }
@@ -425,18 +390,14 @@ async function uploadCard() {
   if(file.size>5*1024*1024) {
     return status("Das Bild darf maximal 5 MB groß sein.");
   }
-
   $("uploadBtn").disabled=true;
   try {
     const ext={"image/jpeg":"jpg","image/png":"png","image/webp":"webp"}[file.type];
     const path=currentUser.id+"/"+crypto.randomUUID()+"."+ext;
-
     const uploaded=await db.storage.from("card-images")
       .upload(path,file,{contentType:file.type});
     if(uploaded.error)throw uploaded.error;
-
     const publicUrl=db.storage.from("card-images").getPublicUrl(path).data.publicUrl;
-
     const inserted=await db.from("cards").insert({
       user_id:currentUser.id,
       name,
@@ -446,12 +407,10 @@ async function uploadCard() {
       description:$("cardDescription").value.trim(),
       image_url:publicUrl
     });
-
     if(inserted.error) {
       await db.storage.from("card-images").remove([path]);
       throw inserted.error;
     }
-
     ["cardName","cardNumber","cardSet","cardDescription","cardImage"]
       .forEach(id=>$(id).value="");
     status("Deine Karte wurde veröffentlicht!");
@@ -462,7 +421,6 @@ async function uploadCard() {
     $("uploadBtn").disabled=false;
   }
 }
-
 async function startChat(card) {
   if(!currentUser)return showPage("auth");
   if(card.user_id===currentUser.id) {
@@ -476,7 +434,6 @@ async function startChat(card) {
   showPage("chat");
   await loadChat();
 }
-
 async function loadChat() {
   if(!activeChat||!currentUser)return;
   $("chatTitle").textContent="Chat: "+activeChat.title;
@@ -487,7 +444,6 @@ async function loadChat() {
       `and(sender_id.eq.${currentUser.id},receiver_id.eq.${activeChat.otherUser}),and(sender_id.eq.${activeChat.otherUser},receiver_id.eq.${currentUser.id})`
     )
     .order("created_at",{ascending:true});
-
   const target=$("chatMessages");
   target.replaceChildren();
   if(error)return status(errorText(error));
@@ -499,12 +455,10 @@ async function loadChat() {
   });
   target.scrollTop=target.scrollHeight;
 }
-
 async function sendMessage() {
   if(!currentUser||!activeChat)return;
   const content=$("chatInput").value.trim();
   if(!content)return;
-
   const {error}=await db.from("messages").insert({
     card_id:activeChat.cardId,
     sender_id:currentUser.id,
@@ -515,18 +469,15 @@ async function sendMessage() {
   $("chatInput").value="";
   await loadChat();
 }
-
 async function loadInbox() {
   if(!currentUser)return;
   const {data,error}=await db.from("messages")
     .select("*")
     .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
     .order("created_at",{ascending:false});
-
   const target=$("conversations");
   target.replaceChildren();
   if(error)return status(errorText(error));
-
   const seen=new Set();
   const conversations=[];
   for(const m of data||[]) {
@@ -537,12 +488,10 @@ async function loadInbox() {
       conversations.push({cardId:m.card_id,otherUser:other});
     }
   }
-
   if(!conversations.length) {
     target.append(textNode("p","Du hast noch keine Nachrichten."));
     return;
   }
-
   for(const c of conversations) {
     const {data:card}=await db.from("cards")
       .select("name").eq("id",c.cardId).maybeSingle();
@@ -559,13 +508,11 @@ async function loadInbox() {
     target.append(btn);
   }
 }
-
 async function initialize() {
   const {data,error}=await db.auth.getUser();
   if(error)console.warn(error);
   currentUser=data?.user||null;
   updateAuth();
-
   db.auth.onAuthStateChange((_event,session)=>{
     currentUser=session?.user||null;
     updateAuth();
@@ -573,10 +520,8 @@ async function initialize() {
       showPage("market");
     }
   });
-
   await loadCards();
 }
-
 initialize();
 </script>
 </body>
