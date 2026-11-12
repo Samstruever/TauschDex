@@ -177,6 +177,7 @@ footer {
   <input id="password" type="password" autocomplete="current-password" placeholder="Mindestens 6 Zeichen">
   <button onclick="login()">Anmelden</button>
   <button class="secondary" onclick="register()">Registrieren</button>
+  <button class="secondary" onclick="resetPassword()">Passwort vergessen?</button>
 </section>
 <section id="marketPage" class="panel">
   <h2>Pokémon-Karten entdecken</h2>
@@ -282,7 +283,25 @@ async function register() {
     ? "Registrierung erfolgreich!"
     : "Registrierung gestartet. Bitte bestätige gegebenenfalls deine E-Mail.");
 }
-async function login() {
+async function resetPassword() {
+  const email = $("email").value.trim();
+
+  if (!email) {
+    return status("Bitte zuerst deine E-Mail-Adresse eingeben.");
+  }
+
+  const { error } = await db.auth.resetPasswordForEmail(email, {
+    redirectTo: "https://samstroever.github.io/TauschTCG/"
+  });
+
+  if (error) {
+    return status(errorText(error));
+  }
+
+  status("Falls die E-Mail-Adresse registriert ist, erhältst du einen Link zum Zurücksetzen.");
+}
+  
+  async function login() {
   const {error} = await db.auth.signInWithPassword({
     email:$("email").value.trim(),
     password:$("password").value
@@ -514,6 +533,7 @@ async function initialize() {
   currentUser=data?.user||null;
   updateAuth();
   db.auth.onAuthStateChange((_event,session)=>{
+    if (_event === "PASSWORD_RECOVERY") setTimeout(() => setNewPassword(), 0);
     currentUser=session?.user||null;
     updateAuth();
     if(!currentUser&&["upload","mine","inbox","chat"].includes(currentPage)) {
@@ -522,7 +542,24 @@ async function initialize() {
   });
   await loadCards();
 }
-initialize();
+async function setNewPassword() {
+  const password = prompt("Bitte gib dein neues Passwort ein (mindestens 8 Zeichen):");
+  if (password === null) return;
+  if (password.length < 8) {
+    return status("Das Passwort muss mindestens 8 Zeichen haben.");
+  }
+
+  const { error } = await db.auth.updateUser({
+    password: password
+  });
+
+  if (error) {
+    return status(errorText(error));
+  }
+
+  status("Dein Passwort wurde erfolgreich geändert!");
+}
+  initialize();
 </script>
 </body>
 </html>
