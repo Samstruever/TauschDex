@@ -3,131 +3,581 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TauschDex</title>
+<title>TauschDex – Pokémon-Karten tauschen</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#101827;color:white;font-family:Arial,sans-serif}
-header{background:#172438;text-align:center;padding:30px}
-h1{color:#39d6aa}
-main{max-width:460px;margin:40px auto;padding:16px}
-.card{background:#1e2c42;padding:25px;border-radius:15px}
-input,button{display:block;width:100%;padding:14px;margin:12px 0;border-radius:8px;font-size:16px}
-input{border:1px solid #64748b}
-button{border:0;background:#39d6aa;color:#101827;font-weight:bold;cursor:pointer}
-button.secondary{background:#cbd5e1}
-button:disabled{opacity:.5}
-[hidden]{display:none!important}
-#message{overflow-wrap:anywhere}
+:root {
+  --bg:#0b0c10;
+  --panel:#181a20;
+  --panel2:#22252d;
+  --orange:#ff8200;
+  --text:#f5f5f5;
+  --muted:#a9aab2;
+  --border:#343740;
+}
+* {box-sizing:border-box}
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Arial,Helvetica,sans-serif;
+}
+header {
+  background:#14151a;
+  border-bottom:2px solid var(--orange);
+  padding:18px 5%;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:15px;
+  flex-wrap:wrap;
+}
+.logo {
+  color:var(--orange);
+  font-size:30px;
+  font-weight:900;
+}
+.logo span {color:white}
+nav {display:flex;gap:10px;flex-wrap:wrap}
+button {
+  background:var(--orange);
+  color:#101010;
+  border:0;
+  border-radius:9px;
+  padding:12px 17px;
+  cursor:pointer;
+  font-weight:bold;
+}
+button:hover {filter:brightness(1.12)}
+button:disabled {opacity:.5;cursor:wait}
+.secondary {
+  background:#292c34;
+  color:white;
+  border:1px solid var(--border);
+}
+.container {
+  width:min(1150px,94%);
+  margin:25px auto;
+}
+.hero {
+  text-align:center;
+  padding:48px 15px;
+  background:linear-gradient(145deg,#20160f,#101116);
+  border:1px solid #513113;
+  border-radius:18px;
+}
+.hero h1 {
+  font-size:clamp(30px,5vw,52px);
+  margin:0 0 15px;
+}
+.hero strong {color:var(--orange)}
+.hero p {color:var(--muted);line-height:1.6}
+.panel {
+  background:var(--panel);
+  padding:22px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  margin-top:22px;
+}
+h2 {margin-top:0}
+input,select,textarea {
+  width:100%;
+  padding:13px;
+  background:#101115;
+  border:1px solid #41434b;
+  color:white;
+  border-radius:8px;
+  margin:7px 0 13px;
+  font:inherit;
+}
+textarea {min-height:100px;resize:vertical}
+label {font-weight:bold;font-size:14px}
+.grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(235px,1fr));
+  gap:18px;
+  margin-top:20px;
+}
+.card {
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:13px;
+  overflow:hidden;
+}
+.card img {
+  width:100%;
+  height:230px;
+  object-fit:contain;
+  background:#101115;
+}
+.card-body {padding:16px}
+.card h3 {margin:0 0 9px}
+.card p {color:var(--muted)}
+.card button {width:100%}
+.tag {
+  color:var(--orange);
+  font-size:13px;
+  font-weight:bold;
+}
+.hidden {display:none!important}
+.status {
+  padding:12px;
+  color:#ffb15c;
+  white-space:pre-wrap;
+}
+.chat-messages {
+  height:300px;
+  overflow-y:auto;
+  padding:12px;
+  background:#101115;
+  border-radius:9px;
+  margin-bottom:12px;
+}
+.message {
+  padding:11px;
+  margin:8px 0;
+  border-radius:9px;
+  background:#30333b;
+  overflow-wrap:anywhere;
+}
+.message.mine {background:#563310}
+small,.muted {color:var(--muted)}
+footer {
+  text-align:center;
+  padding:35px 12px;
+  color:var(--muted);
+}
 </style>
 </head>
 <body>
+
 <header>
-<h1>TauschDex</h1>
-<p>Deine Plattform zum Tauschen</p>
+  <div class="logo">Tausch<span>Dex</span></div>
+  <nav>
+    <button class="secondary" onclick="showPage('market')">Marktplatz</button>
+    <button class="secondary" onclick="showPage('mine')">Meine Karten</button>
+    <button class="secondary" onclick="showPage('inbox')">Nachrichten</button>
+    <button id="authNav" onclick="showPage('auth')">Anmelden</button>
+    <button id="logoutBtn" class="secondary hidden" onclick="logout()">Abmelden</button>
+  </nav>
 </header>
-<main>
-<section class="card" id="authBox">
-<h2>Willkommen bei TauschDex</h2>
-<p>Registriere dich oder melde dich an.</p>
-<form id="authForm">
-<input id="email" type="email" placeholder="E-Mail-Adresse" autocomplete="email" required>
-<input id="password" type="password" placeholder="Passwort (mindestens 6 Zeichen)" autocomplete="current-password" minlength="6" required>
-<button id="loginBtn" type="submit">Anmelden</button>
-<button id="registerBtn" type="button" class="secondary">Registrieren</button>
-</form>
+
+<main class="container">
+
+<section class="hero">
+  <h1>Willkommen bei <strong>TauschDex</strong></h1>
+  <p>Dein Marktplatz für Pokémon-Sammelkarten.<br>
+  Karten entdecken, eigene Karten anbieten und direkt mit Sammlern schreiben.</p>
+  <button onclick="showPage('market')">Karten entdecken</button>
+  <button class="secondary" onclick="showPage('upload')">Karte einstellen</button>
 </section>
-<section class="card" id="userBox" hidden>
-<h2>Du bist angemeldet!</h2>
-<p id="userEmail"></p>
-<p>Willkommen bei TauschDex.</p>
-<button id="logoutBtn" type="button">Abmelden</button>
+
+<p id="status" class="status" role="status" aria-live="polite"></p>
+
+<section id="authPage" class="panel hidden">
+  <h2>Anmelden oder registrieren</h2>
+  <label for="email">E-Mail</label>
+  <input id="email" type="email" autocomplete="email" placeholder="Deine E-Mail">
+  <label for="password">Passwort</label>
+  <input id="password" type="password" autocomplete="current-password" placeholder="Mindestens 6 Zeichen">
+  <button onclick="login()">Anmelden</button>
+  <button class="secondary" onclick="register()">Registrieren</button>
 </section>
-<p id="message" role="status" aria-live="polite"></p>
+
+<section id="marketPage" class="panel">
+  <h2>Pokémon-Karten entdecken</h2>
+  <input id="search" placeholder="Kartenname, Nummer oder Erweiterung suchen..." oninput="renderCards()">
+  <select id="conditionFilter" onchange="renderCards()">
+    <option value="">Alle Zustände</option>
+    <option>Neu / Mint</option>
+    <option>Near Mint</option>
+    <option>Excellent</option>
+    <option>Good</option>
+    <option>Played</option>
+    <option>Damaged</option>
+  </select>
+  <div id="cards" class="grid"></div>
+</section>
+
+<section id="uploadPage" class="panel hidden">
+  <h2>Eigene Pokémon-Karte einstellen</h2>
+  <label>Kartenname</label>
+  <input id="cardName" maxlength="100" placeholder="z. B. Pikachu">
+  <label>Kartennummer</label>
+  <input id="cardNumber" maxlength="40" placeholder="z. B. 025/198">
+  <label>Erweiterung</label>
+  <input id="cardSet" maxlength="100" placeholder="Name der Erweiterung">
+  <label>Zustand</label>
+  <select id="cardCondition">
+    <option>Neu / Mint</option>
+    <option>Near Mint</option>
+    <option>Excellent</option>
+    <option>Good</option>
+    <option>Played</option>
+    <option>Damaged</option>
+  </select>
+  <label>Beschreibung</label>
+  <textarea id="cardDescription" maxlength="1000" placeholder="Beschreibe deine Karte"></textarea>
+  <label>Eigenes Kartenfoto</label>
+  <input id="cardImage" type="file" accept="image/jpeg,image/png,image/webp">
+  <button id="uploadBtn" onclick="uploadCard()">Karte veröffentlichen</button>
+</section>
+
+<section id="minePage" class="panel hidden">
+  <h2>Meine Karten</h2>
+  <button onclick="showPage('upload')">Neue Karte einstellen</button>
+  <div id="myCards" class="grid"></div>
+</section>
+
+<section id="inboxPage" class="panel hidden">
+  <h2>Meine Nachrichten</h2>
+  <div id="conversations"></div>
+</section>
+
+<section id="chatPage" class="panel hidden">
+  <h2 id="chatTitle">Privater Chat</h2>
+  <div id="chatMessages" class="chat-messages"></div>
+  <textarea id="chatInput" maxlength="2000" placeholder="Nachricht schreiben..."></textarea>
+  <button onclick="sendMessage()">Nachricht senden</button>
+  <button class="secondary" onclick="showPage('inbox')">Zurück</button>
+</section>
+
 </main>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<footer>
+  TauschDex – Von Sammlern für Sammler<br>
+  <small>Unabhängige Fan-Plattform. Keine Verbindung zu Nintendo, Pokémon oder The Pokémon Company.</small>
+</footer>
+
 <script>
 const SUPABASE_URL = "https://wcxbxptcvxcjncnxgrrn.supabase.co";
 const SUPABASE_KEY = "sb_publishable_T9e8M597Od26iLF-tn18EA_tFndU3IT";
-const message = document.getElementById("message");
-const authBox = document.getElementById("authBox");
-const userBox = document.getElementById("userBox");
-const userEmail = document.getElementById("userEmail");
-const loginBtn = document.getElementById("loginBtn");
-const registerBtn = document.getElementById("registerBtn");
-const logoutBtn = document.getElementById("logoutBtn");
-let client;
-function showMessage(text){message.textContent=text}
-function setBusy(busy){
-loginBtn.disabled=busy;
-registerBtn.disabled=busy;
-logoutBtn.disabled=busy;
+
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
+let allCards = [];
+let activeChat = null;
+let currentPage = "market";
+
+const $ = id => document.getElementById(id);
+
+function status(text) {
+  $("status").textContent = text || "";
 }
-function showUser(user){
-authBox.hidden=!!user;
-userBox.hidden=!user;
-userEmail.textContent=user?.email||"";
+
+function errorText(error) {
+  console.error(error);
+  return error?.message || "Ein unbekannter Fehler ist aufgetreten.";
 }
-function credentials(){
-return {
-email:document.getElementById("email").value.trim(),
-password:document.getElementById("password").value
-};
+
+function showPage(page) {
+  if (["upload","mine","inbox","chat"].includes(page) && !currentUser) {
+    status("Bitte melde dich zuerst an.");
+    page = "auth";
+  }
+  currentPage = page;
+  ["auth","market","upload","mine","inbox","chat"].forEach(p => {
+    $(p+"Page").classList.toggle("hidden",p!==page);
+  });
+  if(page==="market") loadCards();
+  if(page==="mine") loadMyCards();
+  if(page==="inbox") loadInbox();
+  window.scrollTo({top:0,behavior:"smooth"});
 }
-async function register(){
-const {email,password}=credentials();
-if(!email||password.length<6){
-showMessage("Bitte gültige E-Mail und mindestens 6 Zeichen Passwort eingeben.");
-return;
+
+function updateAuth() {
+  $("authNav").classList.toggle("hidden",!!currentUser);
+  $("logoutBtn").classList.toggle("hidden",!currentUser);
 }
-setBusy(true);
-try{
-const {data,error}=await client.auth.signUp({email,password});
-if(error)throw error;
-showMessage(data.session?"Registrierung erfolgreich!":"Bitte bestätige deine E-Mail-Adresse.");
-}catch(e){showMessage("Registrierung fehlgeschlagen: "+e.message)}
-finally{setBusy(false)}
+
+async function register() {
+  const email = $("email").value.trim();
+  const password = $("password").value;
+  if(!email || password.length<6) {
+    return status("Bitte E-Mail und Passwort mit mindestens 6 Zeichen eingeben.");
+  }
+  const {data,error} = await db.auth.signUp({email,password});
+  if(error) return status(errorText(error));
+  status(data.session
+    ? "Registrierung erfolgreich!"
+    : "Registrierung gestartet. Bitte bestätige gegebenenfalls deine E-Mail.");
 }
-async function login(){
-const {email,password}=credentials();
-if(!email||!password){showMessage("Bitte E-Mail und Passwort eingeben.");return}
-setBusy(true);
-try{
-const {error}=await client.auth.signInWithPassword({email,password});
-if(error)throw error;
-showMessage("Erfolgreich angemeldet!");
-}catch(e){showMessage("Anmeldung fehlgeschlagen: "+e.message)}
-finally{setBusy(false)}
+
+async function login() {
+  const {error} = await db.auth.signInWithPassword({
+    email:$("email").value.trim(),
+    password:$("password").value
+  });
+  if(error) return status(errorText(error));
+  status("Erfolgreich angemeldet!");
+  showPage("market");
 }
-async function logout(){
-setBusy(true);
-try{
-const {error}=await client.auth.signOut();
-if(error)throw error;
-showMessage("Du bist abgemeldet.");
-}catch(e){showMessage("Abmeldung fehlgeschlagen: "+e.message)}
-finally{setBusy(false)}
+
+async function logout() {
+  const {error} = await db.auth.signOut();
+  if(error) return status(errorText(error));
+  activeChat=null;
+  status("Du wurdest abgemeldet.");
+  showPage("market");
 }
-document.getElementById("authForm").addEventListener("submit",e=>{e.preventDefault();login()});
-registerBtn.addEventListener("click",register);
-logoutBtn.addEventListener("click",logout);
-async function start(){
-if(SUPABASE_URL==="DEINE_PROJEKT_URL"||SUPABASE_KEY==="DEIN_VEROEFFENTLICHUNGSSCHLUESSEL"){
-showMessage("Bitte zuerst deine Supabase-Daten eintragen.");
-setBusy(true);return;
+
+function textNode(tag,value,className) {
+  const el=document.createElement(tag);
+  el.textContent=value ?? "";
+  if(className) el.className=className;
+  return el;
 }
-if(!window.supabase){
-showMessage("Supabase konnte nicht geladen werden.");
-setBusy(true);return;
+
+function makeCard(card,own=false) {
+  const el=document.createElement("article");
+  el.className="card";
+
+  if(card.image_url) {
+    const img=document.createElement("img");
+    img.src=card.image_url;
+    img.alt="Foto von "+card.name;
+    img.loading="lazy";
+    el.append(img);
+  }
+
+  const body=document.createElement("div");
+  body.className="card-body";
+  body.append(
+    textNode("span",card.condition,"tag"),
+    textNode("h3",card.name),
+    textNode("p","Nummer: "+(card.card_number||"–")),
+    textNode("p","Erweiterung: "+(card.expansion||"–")),
+    textNode("p",card.description||"")
+  );
+
+  const button=document.createElement("button");
+  if(own) {
+    button.textContent="Eigenes Angebot";
+    button.disabled=true;
+  } else {
+    button.textContent="Anbieter anschreiben";
+    button.onclick=()=>startChat(card);
+  }
+  body.append(button);
+  el.append(body);
+  return el;
 }
-try{
-client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-client.auth.onAuthStateChange((_event,session)=>showUser(session?.user??null));
-const {data,error}=await client.auth.getSession();
-if(error)throw error;
-showUser(data.session?.user??null);
-}catch(e){showMessage("Verbindungsfehler: "+e.message);setBusy(true)}
+
+async function loadCards() {
+  const {data,error}=await db.from("cards")
+    .select("*").order("created_at",{ascending:false});
+  if(error) {
+    status("Karten konnten nicht geladen werden: "+errorText(error));
+    return;
+  }
+  allCards=data||[];
+  renderCards();
 }
-start();
+
+function renderCards() {
+  const search=$("search").value.toLowerCase().trim();
+  const condition=$("conditionFilter").value;
+  const target=$("cards");
+  target.replaceChildren();
+
+  const filtered=allCards.filter(c=>
+    (!condition||c.condition===condition) &&
+    [c.name,c.card_number,c.expansion]
+      .some(v=>String(v||"").toLowerCase().includes(search))
+  );
+
+  if(!filtered.length) {
+    target.append(textNode("p","Keine passenden Karten gefunden."));
+    return;
+  }
+  filtered.forEach(c=>target.append(makeCard(c,c.user_id===currentUser?.id)));
+}
+
+async function loadMyCards() {
+  if(!currentUser)return;
+  const {data,error}=await db.from("cards")
+    .select("*").eq("user_id",currentUser.id)
+    .order("created_at",{ascending:false});
+  const target=$("myCards");
+  target.replaceChildren();
+  if(error)return status(errorText(error));
+  if(!data?.length) {
+    target.append(textNode("p","Du hast noch keine Karten eingestellt."));
+    return;
+  }
+  data.forEach(c=>target.append(makeCard(c,true)));
+}
+
+async function uploadCard() {
+  if(!currentUser)return showPage("auth");
+  const name=$("cardName").value.trim();
+  const number=$("cardNumber").value.trim();
+  const expansion=$("cardSet").value.trim();
+  const file=$("cardImage").files[0];
+
+  if(!name||!number||!expansion||!file) {
+    return status("Bitte Name, Nummer, Erweiterung und Foto angeben.");
+  }
+  if(!["image/jpeg","image/png","image/webp"].includes(file.type)) {
+    return status("Nur JPG, PNG oder WebP sind erlaubt.");
+  }
+  if(file.size>5*1024*1024) {
+    return status("Das Bild darf maximal 5 MB groß sein.");
+  }
+
+  $("uploadBtn").disabled=true;
+  try {
+    const ext={"image/jpeg":"jpg","image/png":"png","image/webp":"webp"}[file.type];
+    const path=currentUser.id+"/"+crypto.randomUUID()+"."+ext;
+
+    const uploaded=await db.storage.from("card-images")
+      .upload(path,file,{contentType:file.type});
+    if(uploaded.error)throw uploaded.error;
+
+    const publicUrl=db.storage.from("card-images").getPublicUrl(path).data.publicUrl;
+
+    const inserted=await db.from("cards").insert({
+      user_id:currentUser.id,
+      name,
+      card_number:number,
+      expansion,
+      condition:$("cardCondition").value,
+      description:$("cardDescription").value.trim(),
+      image_url:publicUrl
+    });
+
+    if(inserted.error) {
+      await db.storage.from("card-images").remove([path]);
+      throw inserted.error;
+    }
+
+    ["cardName","cardNumber","cardSet","cardDescription","cardImage"]
+      .forEach(id=>$(id).value="");
+    status("Deine Karte wurde veröffentlicht!");
+    showPage("mine");
+  } catch(e) {
+    status("Upload fehlgeschlagen: "+errorText(e));
+  } finally {
+    $("uploadBtn").disabled=false;
+  }
+}
+
+async function startChat(card) {
+  if(!currentUser)return showPage("auth");
+  if(card.user_id===currentUser.id) {
+    return status("Du kannst dich nicht selbst anschreiben.");
+  }
+  activeChat={
+    cardId:card.id,
+    otherUser:card.user_id,
+    title:card.name
+  };
+  showPage("chat");
+  await loadChat();
+}
+
+async function loadChat() {
+  if(!activeChat||!currentUser)return;
+  $("chatTitle").textContent="Chat: "+activeChat.title;
+  const {data,error}=await db.from("messages")
+    .select("*")
+    .eq("card_id",activeChat.cardId)
+    .or(
+      `and(sender_id.eq.${currentUser.id},receiver_id.eq.${activeChat.otherUser}),and(sender_id.eq.${activeChat.otherUser},receiver_id.eq.${currentUser.id})`
+    )
+    .order("created_at",{ascending:true});
+
+  const target=$("chatMessages");
+  target.replaceChildren();
+  if(error)return status(errorText(error));
+  if(!data?.length)target.append(textNode("p","Noch keine Nachrichten."));
+  (data||[]).forEach(m=>{
+    const item=textNode("div",m.content,"message");
+    if(m.sender_id===currentUser.id)item.classList.add("mine");
+    target.append(item);
+  });
+  target.scrollTop=target.scrollHeight;
+}
+
+async function sendMessage() {
+  if(!currentUser||!activeChat)return;
+  const content=$("chatInput").value.trim();
+  if(!content)return;
+
+  const {error}=await db.from("messages").insert({
+    card_id:activeChat.cardId,
+    sender_id:currentUser.id,
+    receiver_id:activeChat.otherUser,
+    content
+  });
+  if(error)return status("Nachricht nicht gesendet: "+errorText(error));
+  $("chatInput").value="";
+  await loadChat();
+}
+
+async function loadInbox() {
+  if(!currentUser)return;
+  const {data,error}=await db.from("messages")
+    .select("*")
+    .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+    .order("created_at",{ascending:false});
+
+  const target=$("conversations");
+  target.replaceChildren();
+  if(error)return status(errorText(error));
+
+  const seen=new Set();
+  const conversations=[];
+  for(const m of data||[]) {
+    const other=m.sender_id===currentUser.id?m.receiver_id:m.sender_id;
+    const key=m.card_id+":"+other;
+    if(!seen.has(key)) {
+      seen.add(key);
+      conversations.push({cardId:m.card_id,otherUser:other});
+    }
+  }
+
+  if(!conversations.length) {
+    target.append(textNode("p","Du hast noch keine Nachrichten."));
+    return;
+  }
+
+  for(const c of conversations) {
+    const {data:card}=await db.from("cards")
+      .select("name").eq("id",c.cardId).maybeSingle();
+    const title=card?.name||"Kartenangebot";
+    const btn=document.createElement("button");
+    btn.className="secondary";
+    btn.style.margin="6px";
+    btn.textContent="Chat zu "+title;
+    btn.onclick=async()=>{
+      activeChat={...c,title};
+      showPage("chat");
+      await loadChat();
+    };
+    target.append(btn);
+  }
+}
+
+async function initialize() {
+  const {data,error}=await db.auth.getUser();
+  if(error)console.warn(error);
+  currentUser=data?.user||null;
+  updateAuth();
+
+  db.auth.onAuthStateChange((_event,session)=>{
+    currentUser=session?.user||null;
+    updateAuth();
+    if(!currentUser&&["upload","mine","inbox","chat"].includes(currentPage)) {
+      showPage("market");
+    }
+  });
+
+  await loadCards();
+}
+
+initialize();
 </script>
 </body>
 </html>
