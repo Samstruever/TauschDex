@@ -155,7 +155,9 @@ footer {
   <nav>
     <button class="secondary" onclick="showPage('market')">Marktplatz</button>
     <button class="secondary" onclick="showPage('mine')">Meine Karten</button>
-    <button class="secondary" onclick="showPage('inbox')">Nachrichten</button>
+    <button class="secondary" onclick="showPage('inbox')">
+  Nachrichten <span id="unreadCount" hidden>0</span>
+</button>
     <button id="authNav" onclick="showPage('auth')">Anmelden</button>
     <button id="logoutBtn" class="secondary hidden" onclick="logout()">Abmelden</button>
   </nav>
