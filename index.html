@@ -477,6 +477,7 @@ for (const m of unreadMessages) {
   );
   if (readError) console.error(readError);
 }
+ await updateUnreadCount();
   if(!data?.length)target.append(textNode("p","Noch keine Nachrichten."));
   (data||[]).forEach(m=>{
     const item=textNode("div",m.content,"message");
@@ -499,7 +500,31 @@ async function sendMessage() {
   $("chatInput").value="";
   await loadChat();
 }
-async function loadInbox() {
+async function updateUnreadCount() {
+  const badge = document.getElementById("unreadCount");
+  if (!badge) return;
+
+  if (!currentUser) {
+    badge.hidden = true;
+    return;
+  }
+
+  const { count, error } = await db
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .eq("receiver_id", currentUser.id)
+    .is("read_at", null);
+
+  if (error) {
+    console.error("Nachrichtenzähler:", error);
+    return;
+  }
+
+  badge.textContent = String(count || 0);
+  badge.hidden = !count;
+}
+  async function loadInbox() {
+    await updateUnreadCount();
   if(!currentUser)return;
   const {data,error}=await db.from("messages")
     .select("*")
