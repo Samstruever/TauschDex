@@ -466,6 +466,17 @@ async function loadChat() {
   const target=$("chatMessages");
   target.replaceChildren();
   if(error)return status(errorText(error));
+  const unreadMessages = (data || []).filter(
+  m => m.receiver_id === currentUser.id && !m.read_at
+);
+
+for (const m of unreadMessages) {
+  const { error: readError } = await db.rpc(
+    "mark_message_read",
+    { p_message_id: m.id }
+  );
+  if (readError) console.error(readError);
+}
   if(!data?.length)target.append(textNode("p","Noch keine Nachrichten."));
   (data||[]).forEach(m=>{
     const item=textNode("div",m.content,"message");
